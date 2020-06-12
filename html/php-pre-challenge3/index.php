@@ -27,7 +27,7 @@ foreach ($tempValues as $makeInt) {
 //参考:https://stabucky.com/wp/archives/2188
 //このファンクションを繰り返すことで全組み合わせを出す
 //array_unshiftにて$arrsに切り取ったものを挿入することを繰り返している？
-function combination($array,$extract){
+function getCombination($array,$extract){
     $arrayCount = count($array);    
     if($arrayCount < $extract) {
         return;
@@ -38,7 +38,7 @@ function combination($array,$extract){
     }elseif($extract > 1){
         $j = 0;
         for($i = 0;$i<$arrayCount - $extract + 1;$i++){
-            $ts=combination(array_slice($array,$i + 1),$extract - 1);
+            $ts=getCombination(array_slice($array,$i + 1),$extract - 1);
             foreach($ts as $t){
             array_unshift($t,$array[$i]);
             $arrs[$j] = $t;
@@ -54,7 +54,7 @@ $valueCount = count($values);
 $combinations = array();
 //抜き取りは１つ以上以下存在しないので$i = 1にてcombinarion関数を使う
 for($i = 1;$i <= $valueCount;$i++) {
-    $temps = combination($values,$i);
+    $temps = getCombination($values,$i);
     foreach($temps as $temp) {
         if(array_sum($temp) === $limit) {
             //参考資料だとimplodeだが、int型なのでarray_push→これによって組み合わせを包括した組み合わせができる

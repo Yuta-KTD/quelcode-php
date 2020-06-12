@@ -6,7 +6,8 @@ try {
     $db = new PDO($dsn,$dbuser,$dbpassword);
 } catch (PDOException $e){
     http_response_code(500);
-    echo '[' . http_response_code() . ']';    
+    echo '[' . http_response_code() . ']';
+    exit();
 }
 
 $limit = $_GET['target'];
@@ -15,6 +16,7 @@ if (preg_match("/^[0-9]+$/",$limit) && !preg_match("/^[0]/",$limit) && $limit >=
 }else {
     http_response_code(400);
     echo '[' . http_response_code() . ']';
+    exit();
 }
 
 //数値の配列に変換 参照:https://www.softel.co.jp/blogs/tech/archives/6072

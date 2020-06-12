@@ -6,7 +6,7 @@ try {
     $db = new PDO($dsn,$dbuser,$dbpassword);
 } catch (PDOException $e){
     http_response_code(500);
-    echo '[' . http_response_code() . ']';
+    echo '<' . http_response_code() . '>';
     exit();
 }
 
@@ -15,7 +15,7 @@ if (preg_match("/^[0-9]+$/",$limit) && !preg_match("/^[0]/",$limit) && $limit >=
     $limit = (int)$limit;
 }else {
     http_response_code(400);
-    echo '[' . http_response_code() . ']';
+    echo '<' . http_response_code() . '>';
     exit();
 }
 
@@ -66,4 +66,3 @@ for($i = 1;$i <= $valueCount;$i++) {
 }
 
 echo json_encode($combinations);
-?>

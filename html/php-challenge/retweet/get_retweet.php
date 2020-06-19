@@ -39,76 +39,18 @@ if (empty($_REQUEST['id'])) {
 }
 
 // 投稿を取得する
-$posts = $db->prepare('SELECT m.name, m.picture, p.* FROM members m, posts p WHERE m.id=p.member_id AND p.id=? ORDER BY p.created DESC');
+$posts = $db->prepare('SELECT m.name, m.picture, p.* FROM members m, posts p WHERE m.id=p.member_id AND p.id=?');
 $posts->execute(array($_REQUEST['id']));
-
-
+$getPosts = $posts->fetch();
 // 投稿を記録する
-if (!empty($_POST)) {
-    if ($_POST['message'] != '') {
-        $message = $db->prepare('INSERT INTO posts SET member_id=?, message=?, retweeted_post_id=?, push_retweet_id=?, created=NOW()');
-        $message->execute(array(
-            $member['id'],
-            $_POST['message'],
-            $_POST['retweeted_post_id'],
-            $_POST['push_retweet_id']
-        ));
 
-        header('Location:../index.php');
-        exit();
-    }
-}
-// リツイート元投稿を表示する
-$response = $db->prepare('SELECT m.name, m.picture, p.* FROM members m, posts p WHERE m.id=p.member_id AND p.id=?');
-$response->execute(array($_REQUEST['id']));
+$message = $db->prepare('INSERT INTO posts SET member_id=?, message=?, retweeted_post_id=?, push_retweet_id=?, created=NOW()');
+$message->execute(array(
+    $member['id'],
+    $getPosts['message'],
+    $getPosts['id'],
+    $member['id']
+));
 
-$table = $response->fetch();
-$message = $table['message'];
-
-// htmlspecialcharsのショートカット
-function h($value)
-{
-    return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
-}
-?>
-
-<!DOCTYPE html>
-<html lang="ja">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <script src="https://kit.fontawesome.com/413ad63a84.js" crossorigin="anonymous"></script>
-    <title>ひとこと掲示板 | リツイート作成</title>
-
-    <link rel="stylesheet" href="../style.css" />
-</head>
-
-<body>
-    <div id="wrap">
-        <div id="head">
-            <h1>ひとこと掲示板 | リツイートする</h1>
-        </div>
-        <div id="content">
-            <form action="" method="post">
-                <dl>
-                    <dt><?php echo h($member['name']); ?>さん、メッセージをどうぞ（メッセージは記入しなくても投稿可能です）</dt>
-                    <dd>
-                        <textarea name="message" cols="50" rows="5"><?php echo h($message); ?></textarea>
-                        <input type="hidden" name="retweeted_post_id" value="<?php echo h($_REQUEST['id']); ?>" />
-                        <input type="hidden" name="push_retweet_id" value="<?php echo h($_SESSION['id']); ?>" />
-                    </dd>
-                </dl>
-                <div>
-                    <p>
-                        <input type="submit" value="リツイートする" />
-                        [<a href="../index.php" style="color: #F33;">キャンセル</a>]
-                    </p>
-                </div>
-            </form>
-        </div>
-    </div>
-</body>
-
-</html>
+header('Location:../index.php');
+exit();

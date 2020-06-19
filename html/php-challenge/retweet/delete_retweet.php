@@ -13,7 +13,7 @@ if (isset($_SESSION['id'])) {
     //数値に変換
     $retweetInt = (int) $retweet;
 
-    //いいねの消去
+    //消去
     if ($retweetInt > 0) {
         $del_retweet = $db->prepare('DELETE FROM posts WHERE retweeted_post_id = ? AND push_retweet_id = ?');
         $del_retweet->execute(array(

@@ -5,7 +5,6 @@ require('dbconnect.php');
 if (isset($_SESSION['id']) && $_SESSION['time'] + 3600 > time()) {
 	// ログインしている
 	$_SESSION['time'] = time();
-
 	$members = $db->prepare('SELECT * FROM members WHERE id=?');
 	$members->execute(array($_SESSION['id']));
 	$member = $members->fetch();
@@ -14,7 +13,6 @@ if (isset($_SESSION['id']) && $_SESSION['time'] + 3600 > time()) {
 	header('Location: login.php');
 	exit();
 }
-
 // 投稿を記録する
 if (!empty($_POST)) {
 	if ($_POST['message'] != '') {
@@ -29,36 +27,31 @@ if (!empty($_POST)) {
 		exit();
 	}
 }
-
 // 投稿を取得する
 $page = $_REQUEST['page'];
 if ($page == '') {
 	$page = 1;
 }
 $page = max($page, 1);
-
 // 最終ページを取得する
 $counts = $db->query('SELECT COUNT(*) AS cnt FROM posts');
 $cnt = $counts->fetch();
 $maxPage = ceil($cnt['cnt'] / 5);
 $page = min($page, $maxPage);
-
 $start = ($page - 1) * 5;
 $start = max(0, $start);
 $posts = $db->prepare('SELECT m.name, m.picture, p.* FROM members m, posts p WHERE m.id=p.member_id ORDER BY p.created DESC LIMIT ?, 5');
 $posts->bindParam(1, $start, PDO::PARAM_INT);
 $posts->execute();
-
-
 //いいね済かのチェック
-$pushMessages = $db->prepare('SELECT liked_post_id FROM likes WHERE push_member_id=?');
+$pushMessages_sql = 'SELECT liked_post_id FROM likes WHERE push_member_id=?';
+$pushMessages = $db->prepare($pushMessages_sql);
 $pushMessages->bindParam(1, $_SESSION['id'], PDO::PARAM_INT);
 $pushMessages->execute();
 $pushMsg = array();
 foreach ($pushMessages as $pMsg) {
 	$pushMsg[] = $pMsg;
 }
-
 //リツイート済かのチェック
 $pushRetweets = $db->prepare('SELECT retweeted_post_id FROM posts WHERE push_retweet_id=?');
 $pushRetweets->bindParam(1, $_SESSION['id'], PDO::PARAM_INT);
@@ -67,7 +60,6 @@ $pushRet = array();
 foreach ($pushRetweets as $pRet) {
 	$pushRet[] = $pRet;
 }
-
 // 返信の場合
 if (isset($_REQUEST['res'])) {
 	$response = $db->prepare('SELECT m.name, m.picture, p.* FROM members m, posts p WHERE m.id=p.member_id AND p.id=? ORDER BY p.created DESC');
@@ -123,29 +115,23 @@ function makeLink($value)
 					</p>
 				</div>
 			</form>
-
 			<?php
 			foreach ($posts as $post) :
 			?>
-				<?php
-
-				?>
-
 				<div class="msg">
 					<img src="member_picture/<?php echo h($post['picture']); ?>" width="48" height="48" alt="<?php echo h($post['name']); ?>" />
 					<p><?php echo makeLink(h($post['message'])); ?><span class="name">（<?php echo h($post['name']); ?>）</span>[<a href="index.php?res=<?php echo h($post['id']); ?>">Re</a>]
+						<!-- リツイートを押したidが存在するとき(押したid)が０以上のとき、リツイート投稿であることを表示する -->
 						<?php
-						$postMemId = (int) $post['member_id'];
 						$postRtId = (int) $post['push_retweet_id'];
 						?>
 						<?php
-						if ($postMemId === $postRtId) :
+						if ($postRtId > 0) :
 						?>
 							<span class="retweet-post">リツイート投稿</span>
 						<?php
 						endif;
 						?>
-
 					</p>
 					<p class="day"><a href="view.php?id=<?php echo h($post['id']); ?>"><?php echo h($post['created']); ?></a>
 						<?php
@@ -157,7 +143,6 @@ function makeLink($value)
 						<?php
 						endif;
 						?>
-						<!-- いいねここから -->
 						<?php
 						//いいね数
 						$likes_sql = 'SELECT COUNT(liked_post_id) AS like_cnt FROM likes WHERE liked_post_id =?';
@@ -165,58 +150,97 @@ function makeLink($value)
 						$likes_post->bindParam(1, $post['id'], PDO::PARAM_INT);
 						$likes_post->execute();
 						$likes_posts = $likes_post->fetch();
+						//リツイート先のいいね数
 
+						$likes_post_retweet = $db->prepare('SELECT liked_post_id, push_member_id, COUNT(liked_post_id) AS like_cnt FROM likes WHERE liked_post_id =?');
+						$likes_post_retweet->bindParam(1, $post['retweeted_post_id'], PDO::PARAM_INT);
+						$likes_post_retweet->execute();
+						$likes_posts_retweet = $likes_post_retweet->fetch();
 
-
-						//毎回初期化している
+						//リツイート先投稿でのリツイートしているかの確認
+						$postRtId = (int) $post['push_retweet_id'];
+						$memberId = (int) $member['id'];
+						?>
+						<?php
+						//参考：https://qiita.com/blacklions20/items/ffa0354e625c43c95582
+						//初期化している
 						$haveLike = 0;
+						$haveLike_r = 0;
+						//リツイート投稿とそうでない時の場合わけ
 						for ($i = 0; $i < count($pushMsg); $i++) {
 							if ($pushMsg[$i]['liked_post_id'] === $post['id']) {
 								$haveLike = $post['id'];
+							} else if ($pushMsg[$i]['liked_post_id'] === $post['retweeted_post_id']) {
+								$haveLike_r =  $post['retweeted_post_id'];
 							}
 						}
-						?>
-
-
-						<!-- いいね 済かのチェック -->
-						<?php
-						if ($haveLike > 0) :
-						?>
-							<!-- いいねしていなかった場合(いいね登録) -->
-							<a class="like" href="like/delete_like.php?id=<?php echo h($post['id']); ?>"><i class="far fa-heart heart-red"></i></a>
-
-						<?php
-						else :
-						?>
-							<!-- いいねしていた場合（いいね削除) -->
-							<a class="like" href="like/get_like.php?id=<?php echo h($post['id']); ?>"><i class="far fa-heart"></i></a>
-						<?php
-						endif;
-						?>
-						<?php echo h($likes_posts['like_cnt']); ?>
-
-						<!-- リツイート -->
-
-						<?php
 						//リツイート数
 						$retweet_sql = 'SELECT COUNT(retweeted_post_id) AS retweet_cnt FROM posts WHERE retweeted_post_id =?';
 						$retweet_post = $db->prepare($retweet_sql);
 						$retweet_post->bindParam(1, $post['id'], PDO::PARAM_INT);
 						$retweet_post->execute();
 						$retweet_posts = $retweet_post->fetch();
-
+						//リツイート先投稿のリツイート数
+						$retweetPost = $db->prepare($retweet_sql);
+						$retweetPost->bindParam(1, $post['retweeted_post_id'], PDO::PARAM_INT);
+						$retweetPost->execute();
+						$retweetPosts = $retweetPost->fetch();
 
 						//毎回初期化している
 						$haveRetweet = 0;
+						//リツイート元投稿のリツイートしているかの確認
 						for ($i = 0; $i < count($pushRet); $i++) {
 							if ($pushRet[$i]['retweeted_post_id'] === $post['id']) {
 								$haveRetweet = $post['id'];
 							}
 						}
 						?>
-
+						<!-- いいねここから -->
 						<?php
-						if ($haveRetweet > 0) :
+						if ($postRtId > 0) :
+						?>
+							<!-- リツイート投稿の場合 -->
+							<?php
+							if ($haveLike_r === $post['retweeted_post_id']) :
+							?>
+								<!-- いいねしていた場合（いいね削除) -->
+								<a class="like" href="like/delete_like.php?id=<?php echo h($post['id']); ?>"><i class="far fa-heart heart-red"></i></a>
+							<?php
+							else :
+							?>
+								<!-- いいねしていなかった場合(いいね登録) -->
+								<a class="like" href="like/get_like.php?id=<?php echo h($post['id']); ?>"><i class="far fa-heart"></i></a>
+							<?php
+							endif;
+							?>
+							<!-- いいね数の表示（リツイート） -->
+							<?php echo h($likes_posts_retweet['like_cnt']); ?>
+						<?php
+						else :
+						?>
+							<!-- リツイート投稿でない場合 -->
+							<?php
+							if ($haveLike > 0) :
+							?>
+								<!-- いいねしていた場合（いいね削除) -->
+								<a class="like" href="like/delete_like.php?id=<?php echo h($post['id']); ?>"><i class="far fa-heart heart-red"></i></a>
+
+							<?php
+							else :
+							?>
+								<!-- いいねしていなかった場合(いいね登録) -->
+								<a class="like" href="like/get_like.php?id=<?php echo h($post['id']); ?>"><i class="far fa-heart"></i></a>
+							<?php
+							endif;
+							?>
+							<!-- いいね数の表示 -->
+							<?php echo h($likes_posts['like_cnt']); ?>
+						<?php
+						endif;
+						?>
+						<!-- リツイート -->
+						<?php
+						if ($haveRetweet > 0 || $postRtId === $memberId) :
 						?>
 							<a class="retweet" href="retweet/delete_retweet.php?id=<?php echo h($post['id']); ?>"><i class="fas fa-retweet retweet-blue"></i></a>
 						<?php
@@ -226,8 +250,18 @@ function makeLink($value)
 						<?php
 						endif;
 						?>
-						<?php echo h($retweet_posts['retweet_cnt']); ?>
-
+						<!-- リツイート数の表示 -->
+						<?php
+						if ($postRtId > 0) :
+						?>
+							<?php echo h($retweetPosts['retweet_cnt']); ?>
+						<?php
+						else :
+						?>
+							<?php echo h($retweet_posts['retweet_cnt']); ?>
+						<?php
+						endif;
+						?>
 						<?php
 						if ($_SESSION['id'] == $post['member_id']) :
 						?>
@@ -235,14 +269,11 @@ function makeLink($value)
 						<?php
 						endif;
 						?>
-
-
 					<?php
 				endforeach;
 					?>
 					</p>
 				</div>
-
 				<ul class="paging">
 					<?php
 					if ($page > 1) {

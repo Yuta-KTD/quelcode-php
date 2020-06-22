@@ -15,24 +15,6 @@ if (isset($_SESSION['id']) && $_SESSION['time'] + 3600 > time()) {
     header('Location: ../login.php');
     exit();
 }
-
-if (isset($_SESSION['id'])) {
-    // リツイートがログインされたユーザーからか調べる
-    $retweets = $db->prepare('SELECT COUNT(retweeted_post_id) AS retweet_cnt FROM posts WHERE retweeted_post_id = ? AND push_retweet_id = ?');
-    $retweets->execute(array(
-        $_REQUEST['id'],
-        $_SESSION['id']
-    ));
-    $retweet = $retweets->fetch(PDO::FETCH_COLUMN);
-    //数値に変換
-    $retweetInt = (int) $retweet;
-
-    //リツイート済の投稿だった場合もどる
-    if ($retweetInt > 0) {
-        header('Location:../index.php');
-        exit();
-    }
-}
 if (empty($_REQUEST['id'])) {
     header('Location:../index.php');
     exit();

@@ -151,22 +151,20 @@ function makeLink($value)
 						$likes_post->execute();
 						$likes_posts = $likes_post->fetch();
 						//リツイート先のいいね数
-
 						$likes_post_retweet = $db->prepare('SELECT liked_post_id, push_member_id, COUNT(liked_post_id) AS like_cnt FROM likes WHERE liked_post_id =?');
 						$likes_post_retweet->bindParam(1, $post['retweeted_post_id'], PDO::PARAM_INT);
 						$likes_post_retweet->execute();
 						$likes_posts_retweet = $likes_post_retweet->fetch();
 
 						//リツイート先投稿でのリツイートしているかの確認
-						$postRtId = (int) $post['push_retweet_id'];
-						$memberId = (int) $member['id'];
+						$postRtId =  $post['push_retweet_id'];
 						?>
 						<?php
 						//参考：https://qiita.com/blacklions20/items/ffa0354e625c43c95582
 						//初期化している
 						$haveLike = 0;
 						$haveLike_r = 0;
-						//リツイート投稿とそうでない時の場合わけ
+						//いいねにおけるリツイート投稿とそうでない時の場合わけ
 						for ($i = 0; $i < count($pushMsg); $i++) {
 							if ($pushMsg[$i]['liked_post_id'] === $post['id']) {
 								$haveLike = $post['id'];
@@ -175,17 +173,16 @@ function makeLink($value)
 							}
 						}
 						//リツイート数
-						$retweet_sql = 'SELECT COUNT(retweeted_post_id) AS retweet_cnt FROM posts WHERE retweeted_post_id =?';
+						$retweet_sql = 'SELECT COUNT(*) FROM posts WHERE retweeted_post_id =?';
 						$retweet_post = $db->prepare($retweet_sql);
 						$retweet_post->bindParam(1, $post['id'], PDO::PARAM_INT);
 						$retweet_post->execute();
-						$retweet_posts = $retweet_post->fetch();
-						//リツイート先投稿のリツイート数
+						$retweet_posts = $retweet_post->fetchColumn();
+						//リツイート先でのリツイート数
 						$retweetPost = $db->prepare($retweet_sql);
 						$retweetPost->bindParam(1, $post['retweeted_post_id'], PDO::PARAM_INT);
 						$retweetPost->execute();
-						$retweetPosts = $retweetPost->fetch();
-
+						$retweetPosts = $retweetPost->fetchColumn();
 						//毎回初期化している
 						$haveRetweet = 0;
 						//リツイート元投稿のリツイートしているかの確認
@@ -194,6 +191,10 @@ function makeLink($value)
 								$haveRetweet = $post['id'];
 							}
 						}
+						$haveRetweet_post = $db->prepare($retweet_sql);
+						$haveRetweet_post->bindParam(1, $post['id'], PDO::PARAM_INT);
+						$haveRetweet_post->execute();
+						$haveRetweet_posts = $haveRetweet_post->fetch();
 						?>
 						<!-- いいねここから -->
 						<?php
@@ -240,7 +241,7 @@ function makeLink($value)
 						?>
 						<!-- リツイート -->
 						<?php
-						if ($haveRetweet > 0 || $postRtId === $memberId) :
+						if ($haveRetweet > 0 || $postRtId === $_SESSION['id']) :
 						?>
 							<a class="retweet" href="retweet/delete_retweet.php?id=<?php echo h($post['id']); ?>"><i class="fas fa-retweet retweet-blue"></i></a>
 						<?php
@@ -252,15 +253,12 @@ function makeLink($value)
 						?>
 						<!-- リツイート数の表示 -->
 						<?php
-						if ($postRtId > 0) :
-						?>
-							<?php echo h($retweetPosts['retweet_cnt']); ?>
-						<?php
-						else :
-						?>
-							<?php echo h($retweet_posts['retweet_cnt']); ?>
-						<?php
-						endif;
+						if ($retweet_posts > 0) {
+							echo h($retweet_posts);
+						}
+						if ($postRtId > 0) {
+							echo h($retweetPosts);
+						}
 						?>
 						<?php
 						if ($_SESSION['id'] == $post['member_id']) :

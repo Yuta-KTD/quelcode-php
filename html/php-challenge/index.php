@@ -158,6 +158,7 @@ function makeLink($value)
 
 						//リツイート先投稿でのリツイートしているかの確認
 						$postRtId =  $post['push_retweet_id'];
+						$originRtPost = $post['origin_retweet_post_id'];
 						?>
 						<?php
 						//参考：https://qiita.com/blacklions20/items/ffa0354e625c43c95582
@@ -191,6 +192,17 @@ function makeLink($value)
 								$haveRetweet = $post['id'];
 							}
 						}
+						//リツイート投稿をリツイートされた時の検索方法
+						$retweetCheck = $db->prepare('SELECT member_id FROM posts WHERE origin_retweet_post_id = ?');
+						$retweetCheck->execute(array(
+							$post['id']
+						));
+						$retweetC = [];
+						foreach ($retweetCheck as $retC) {
+							$retweetC[] = $retC['member_id'];
+						}
+
+
 						$haveRetweet_post = $db->prepare($retweet_sql);
 						$haveRetweet_post->bindParam(1, $post['id'], PDO::PARAM_INT);
 						$haveRetweet_post->execute();
@@ -241,7 +253,7 @@ function makeLink($value)
 						?>
 						<!-- リツイート -->
 						<?php
-						if ($haveRetweet > 0 || $postRtId === $_SESSION['id']) :
+						if ($haveRetweet > 0 || in_array($_SESSION['id'], (array) $retweetC) || ($postRtId > 0 && $post['member_id'] === $_SESSION['id'])) :
 						?>
 							<a class="retweet" href="retweet/delete_retweet.php?id=<?php echo h($post['id']); ?>"><i class="fas fa-retweet retweet-blue"></i></a>
 						<?php

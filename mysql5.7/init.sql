@@ -25,6 +25,7 @@ CREATE TABLE `posts` (
       `reply_post_id` int(11) NOT NULL,
       `retweeted_post_id` int(11) NOT NULL,
       `push_retweet_id` int(11) NOT NULL,
+      `origin_retweet_post_id` int(11) NOT NULL,
       `created` datetime NOT NULL,
       `modified` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       PRIMARY KEY (`id`)

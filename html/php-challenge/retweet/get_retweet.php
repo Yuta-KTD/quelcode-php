@@ -34,23 +34,25 @@ if ($getRetweetedPostId > 0) {
 // 投稿を記録する
 //投稿がリツイートされた投稿だった場合
 if ($getRetweetedPostId > 0) {
-    $retweetMessage = $db->prepare('INSERT INTO posts SET member_id=?, message=?, retweeted_post_id=?, push_retweet_id=?, created=NOW()');
+    $retweetMessage = $db->prepare('INSERT INTO posts SET member_id=?, message=?, retweeted_post_id=?, push_retweet_id=?, origin_retweet_post_id = ?,created=NOW()');
     $retweetMessage->execute(array(
         $member['id'],
         $getPosts['message'],
         // リツイートの最初の投稿をたどる
         $getRetweetedPostId,
-        $member['id']
+        $getPosts['member_id'],
+        $_REQUEST['id']
     ));
 } else {
 
     //リツイート投稿でない場合
-    $message = $db->prepare('INSERT INTO posts SET member_id=?, message=?, retweeted_post_id=?, push_retweet_id=?,created=NOW()');
+    $message = $db->prepare('INSERT INTO posts SET member_id=?, message=?, retweeted_post_id=?, push_retweet_id=?,origin_retweet_post_id = ?,created=NOW()');
     $message->execute(array(
         $member['id'],
         $getPosts['message'],
         $getPosts['id'],
         $member['id'],
+        $_REQUEST['id']
     ));
 }
 

@@ -3,7 +3,7 @@ session_start();
 require('../dbconnect.php');
 
 $id = $_REQUEST['id'];
-//投稿がリツイート先の投稿の場合 $postRI > 0 となる
+//投稿がリツイート先の投稿の場合
 $post = $db->prepare('SELECT member_id,retweeted_post_id, push_retweet_id FROM posts WHERE id = ?');
 $post->bindParam(1, $id, PDO::PARAM_INT);
 $post->execute();
@@ -26,7 +26,7 @@ if (isset($_SESSION['id'])) {
         }
     } else {
         //リツイート元にてボタンを押した場合
-        $del_retweet = $db->prepare('DELETE FROM posts WHERE origin_retweet_post_id = ? AND member_id = ?');
+        $del_retweet = $db->prepare('DELETE FROM posts WHERE retweeted_post_id = ? AND member_id = ?');
         $del_retweet->execute(array(
             $_REQUEST['id'],
             $_SESSION['id']

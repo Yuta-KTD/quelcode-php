@@ -51,7 +51,7 @@ if ($getRetweetedPostId > 0) {
         $member['id'],
         $getPosts['message'],
         $getPosts['id'],
-        $member['id'],
+        $getPosts['member_id'],
         $_REQUEST['id']
     ));
 }

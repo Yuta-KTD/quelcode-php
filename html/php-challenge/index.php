@@ -43,7 +43,9 @@ $start = max(0, $start);
 $posts = $db->prepare('SELECT m.name, m.picture, p.* FROM members m, posts p WHERE m.id=p.member_id ORDER BY p.created DESC LIMIT ?, 5');
 $posts->bindParam(1, $start, PDO::PARAM_INT);
 $posts->execute();
-//リツイート済かのチェック
+
+//リツイート投稿の投稿情報取得
+
 
 //いいね済かのチェック
 $pushMessages_sql = 'SELECT liked_post_id FROM likes WHERE push_member_id=?';
@@ -132,20 +134,25 @@ function makeLink($value)
 			foreach ($posts as $post) :
 			?>
 				<div class="msg">
+					<?php
+					$postRtId =  (int) $post['push_retweet_id'];
+					if ($postRtId > 0) {
+						$postsRetweet = $db->prepare('SELECT m.name, m.picture FROM members m, posts p WHERE m.id=p.member_id AND p.id = ?');
+						$postsRetweet->execute(array($post['retweeted_post_id']));
+						$postRetweet = $postsRetweet->fetch();
+						$retweetName = $post['name'];
+						$post['picture'] = $postRetweet['picture'];
+						$post['name'] = $postRetweet['name'];
+					}
+					?>
 					<img src="member_picture/<?php echo h($post['picture']); ?>" width="48" height="48" alt="<?php echo h($post['name']); ?>" />
 					<p><?php echo makeLink(h($post['message'])); ?><span class="name">（<?php echo h($post['name']); ?>）</span>[<a href="index.php?res=<?php echo h($post['id']); ?>">Re</a>]
 						<!-- リツイートを押したidが存在するとき(押したid)が０以上のとき、リツイート投稿であることを表示する -->
+
 						<?php
-						$postRtId = (int) $post['push_retweet_id'];
+						if ($postRtId > 0) :
 						?>
-						<?php
-						if ($_SESSION['id'] === $post['member_id'] && $postRtId > 0) :
-						?>
-							<span class="retweet-post">自身のリツイート投稿</span>
-						<?php
-						elseif ($postRtId > 0) :
-						?>
-							<span class="retweet-post">リツイート投稿</span>
+							<span class="retweet-post"><?php echo h($retweetName) ?>のリツイート投稿</span>
 						<?php
 						endif;
 						?>

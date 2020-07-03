@@ -52,20 +52,20 @@ foreach ($pushLike as $pushL) {
 	$pushLikes[] = $pushL;
 }
 //リツイートのチェック
-$pushRetweets = $db->prepare('SELECT origin_retweet_post_id FROM posts WHERE member_id=?');
-$pushRetweets->bindParam(1, $_SESSION['id'], PDO::PARAM_INT);
-$pushRetweets->execute();
-$pushRet = array();
-foreach ($pushRetweets as $pRet) {
-	$pushRet[] = $pRet;
+$pushRetweet = $db->prepare('SELECT origin_retweet_post_id FROM posts WHERE member_id=?');
+$pushRetweet->bindParam(1, $_SESSION['id'], PDO::PARAM_INT);
+$pushRetweet->execute();
+$pushRetweets = array();
+foreach ($pushRetweet as $pushR) {
+	$pushRetweets[] = $pushR;
 }
 //リツイートのチェック
-$retweetCheck = $db->prepare('SELECT retweeted_post_id FROM posts WHERE member_id = ?');
-$retweetCheck->bindParam(1, $_SESSION['id'], PDO::PARAM_INT);
-$retweetCheck->execute();
-$retweetCh = array();
-foreach ($retweetCheck as $retweetChecks) {
-	$retweetCh[] = $retweetChecks;
+$checkRetweet = $db->prepare('SELECT retweeted_post_id FROM posts WHERE member_id = ?');
+$checkRetweet->bindParam(1, $_SESSION['id'], PDO::PARAM_INT);
+$checkRetweet->execute();
+$checkRetweets = array();
+foreach ($checkRetweet as $checkR) {
+	$checkRetweets[] = $checkR;
 }
 
 // 返信の場合
@@ -129,9 +129,9 @@ function makeLink($value)
 				<div class="msg">
 					<?php
 
-					$pushRtId =  (int) $post['push_retweet_id'];
+					$pushRetweetId =  (int) $post['push_retweet_id'];
 					//リツイート投稿の投稿表示
-					if ($pushRtId > 0) {
+					if ($pushRetweetId > 0) {
 						$postsRetweet = $db->prepare('SELECT m.name, m.picture FROM members m, posts p WHERE m.id=p.member_id AND p.id = ?');
 						$postsRetweet->execute(array($post['retweeted_post_id']));
 						$postRetweet = $postsRetweet->fetch();
@@ -145,7 +145,7 @@ function makeLink($value)
 						<!-- リツイートを押したidが存在するとき(押したid)が０以上のとき、リツイート投稿であることを表示する -->
 
 						<?php
-						if ($pushRtId > 0) :
+						if ($pushRetweetId > 0) :
 						?>
 							<span class="retweet-post"><?php echo h($retweetName) ?>のリツイート投稿</span>
 						<?php
@@ -174,10 +174,6 @@ function makeLink($value)
 						$likesPostRetweet->bindParam(1, $post['retweeted_post_id'], PDO::PARAM_INT);
 						$likesPostRetweet->execute();
 						$likesPostsRetweet = $likesPostRetweet->fetch();
-
-						//リツイート先投稿でのリツイートしているかの確認
-						$pushRtId =  (int) $post['push_retweet_id'];
-						$originRtPost = (int) $post['origin_retweet_post_id'];
 						?>
 						<?php
 						//参考：https://qiita.com/blacklions20/items/ffa0354e625c43c95582
@@ -212,18 +208,18 @@ function makeLink($value)
 							}
 						}
 						//リツイート投稿をリツイートされた時の検索方法
-						$retweetC = 0;
-						$retweetCR = 0;
-						for ($i = 0; $i < count($retweetCh); $i++) {
-							if ($retweetCh[$i]['retweeted_post_id'] === $post['id']) {
+						$retweetPostChecker = 0;
+						$retweetedPostChecker = 0;
+						for ($i = 0; $i < count($checkRetweets); $i++) {
+							if ($checkRetweets[$i]['retweeted_post_id'] === $post['id']) {
 
-								$retweetCR = $post['id'];
-							} else if ($retweetCh[$i]['retweeted_post_id'] === $post['retweeted_post_id']) {
-								$retweetC = $post['retweeted_post_id'];
+								$retweetedPostChecker = $post['id'];
+							} else if ($checkRetweets[$i]['retweeted_post_id'] === $post['retweeted_post_id']) {
+								$retweetPostChecker = $post['retweeted_post_id'];
 							}
 						}
 						//リツイート判定
-						if ($pushRtId > 0 && $_SESSION['id'] === $post['id']) {
+						if ($pushRetweetId > 0 && $_SESSION['id'] === $post['id']) {
 							$myRetweetedPostId = $db->prepare('SELECT retweeted_post_id FROM posts WHERE member_id = ?');
 							$myRetweetedPostId->bindParam(1, $_SESSION['id'], PDO::PARAM_INT);
 							$myRetweetedPostId->execute();
@@ -232,7 +228,7 @@ function makeLink($value)
 						?>
 						<!-- いいねここから -->
 						<?php
-						if ($pushRtId > 0) :
+						if ($pushRetweetId > 0) :
 						?>
 							<!-- リツイート投稿の場合 -->
 							<?php
@@ -275,7 +271,7 @@ function makeLink($value)
 						?>
 						<!-- リツイート -->
 						<?php
-						if ($haveRetweet > 0 || $retweetC > 0 || $retweetCR > 0) :
+						if ($haveRetweet > 0 || $retweetPostChecker > 0 || $retweetedPostChecker > 0) :
 						?>
 							<a class="retweet" href="retweet/delete_retweet.php?id=<?php echo h($post['id']); ?>"><i class="fas fa-retweet retweet-blue"></i></a>
 						<?php
@@ -289,23 +285,23 @@ function makeLink($value)
 						<?php
 						if ($retweetPostsOrigin > 0) {
 							echo h($retweetPostsOrigin);
-						} else if ($pushRtId > 0) {
+						} else if ($pushRetweetId > 0) {
 							echo h($retweetPosts);
 						} else {
 							echo 0;
 						}
 						?>
 						<?php
-						if ($pushRtId > 0) : {
+						if ($pushRetweetId > 0) : {
 								//リツイート先の時
 								$retweetedMenberId = $db->prepare('SELECT member_id FROM posts WHERE id = ?');
 								$retweetedMenberId->bindParam(1, $post['retweeted_post_id'], PDO::PARAM_INT);
 								$retweetedMenberId->execute();
-								$retweetedMId = $retweetedMenberId->fetch();
+								$retweetedMenberIds = $retweetedMenberId->fetch();
 							}
 						?>
 							<?php
-							if ($_SESSION['id'] === $retweetedMId['member_id']) :
+							if ($_SESSION['id'] === $retweetedMenberIds['member_id']) :
 							?>
 								[<a href="delete.php?id=<?php echo h($post['id']); ?>" style="color: #F33;">削除</a>]
 							<?php

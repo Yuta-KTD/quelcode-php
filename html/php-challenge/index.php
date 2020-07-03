@@ -296,12 +296,35 @@ function makeLink($value)
 						}
 						?>
 						<?php
-						if ($_SESSION['id'] === $post['member_id']) :
+						if ($pushRtId > 0) : {
+								//リツイート先の時
+								$retweetedMenberId = $db->prepare('SELECT member_id FROM posts WHERE id = ?');
+								$retweetedMenberId->bindParam(1, $post['retweeted_post_id'], PDO::PARAM_INT);
+								$retweetedMenberId->execute();
+								$retweetedMId = $retweetedMenberId->fetch();
+							}
 						?>
-							[<a href="delete.php?id=<?php echo h($post['id']); ?>" style="color: #F33;">削除</a>]
+							<?php
+							if ($_SESSION['id'] === $retweetedMId['member_id']) :
+							?>
+								[<a href="delete.php?id=<?php echo h($post['id']); ?>" style="color: #F33;">削除</a>]
+							<?php
+							endif;
+							?>
+						<?php
+						else :
+						?>
+							<?php
+							if ($_SESSION['id'] === $post['member_id']) :
+							?>
+								[<a href="delete.php?id=<?php echo h($post['id']); ?>" style="color: #F33;">削除</a>]
+							<?php
+							endif;
+							?>
 						<?php
 						endif;
 						?>
+
 					<?php
 				endforeach;
 					?>
